@@ -54,3 +54,5 @@ def generate_chef_reply(
         logger.exception("Gemini failed: %s", e)
         record_turn(session_id, message, MOCK_REPLY)
         return MOCK_REPLY
+
+
