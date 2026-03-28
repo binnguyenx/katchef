@@ -3,33 +3,16 @@ import type {
   ChatRequestPayload,
   ChatbotResponse,
   IngredientDetection,
+  RecipeSuggestResponse,
   VisionDetectResponse,
 } from '../types';
 
 const buildUrl = (path: string) => `${config.apiBaseUrl}${path}`;
 
 const demoDetections: IngredientDetection[] = [
-  {
-    id: 'demo-tomato',
-    name: 'Tomato',
-    quantity: '2 items',
-    category: 'Vegetable',
-    confidence: 0.92,
-  },
-  {
-    id: 'demo-eggs',
-    name: 'Eggs',
-    quantity: '4 eggs',
-    category: 'Protein',
-    confidence: 0.89,
-  },
-  {
-    id: 'demo-basil',
-    name: 'Basil',
-    quantity: '1 handful',
-    category: 'Spice',
-    confidence: 0.81,
-  },
+  { name: 'Tomato', quantity: '2 items', confidence: 0.92 },
+  { name: 'Eggs', quantity: '4 eggs', confidence: 0.89 },
+  { name: 'Basil', quantity: '1 handful', confidence: 0.81 },
 ];
 
 export const demoScanImageUri = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -49,36 +32,29 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const buildMockChatResponse = async (payload: ChatRequestPayload): Promise<ChatbotResponse> => {
   await delay(700);
 
-  const availableIngredients = payload.fridgeItems?.map(item => item.name.toLowerCase()) ?? [];
+  const ingredients = payload.ingredients.map(i => i.toLowerCase());
   const prompt = payload.message.toLowerCase();
-  const hasEggs = availableIngredients.some(item => item.includes('egg'));
-  const hasTomato = availableIngredients.some(item => item.includes('tomato'));
+  const hasEggs = ingredients.some(i => i.includes('egg'));
+  const hasTomato = ingredients.some(i => i.includes('tomato'));
   const wantsBreakfast = prompt.includes('breakfast') || prompt.includes('omelette');
 
   if (hasEggs && (hasTomato || wantsBreakfast)) {
     return {
       reply:
         'You can make a quick tomato omelette with your eggs. Whisk the eggs, saute the tomatoes briefly, then cook everything together over medium heat.',
-      suggestedRecipes: ['Quick Omelette', 'Tomato Egg Scramble'],
-      tips: ['Use medium heat for softer eggs.', 'Add herbs at the end for a fresher finish.'],
     };
   }
 
-  if (availableIngredients.length > 0) {
-    const ingredientSummary = availableIngredients.slice(0, 3).join(', ');
-
+  if (ingredients.length > 0) {
+    const summary = ingredients.slice(0, 3).join(', ');
     return {
-      reply: `With ${ingredientSummary}, I'd build a fast skillet meal or toast topper. Start with the most delicate ingredients last so they stay bright.`,
-      suggestedRecipes: ['Pantry Skillet Toss', 'Open-Face Savory Toast'],
-      tips: ['Season in layers instead of all at once.', 'Acid at the end makes leftovers taste fresher.'],
+      reply: `With ${summary}, I'd build a fast skillet meal or toast topper. Start with the most delicate ingredients last so they stay bright.`,
     };
   }
 
   return {
     reply:
       'Tell me what mood you are cooking for and I can suggest a simple dish. If you add fridge ingredients, I can tailor the recipe much more closely.',
-    suggestedRecipes: ['Cozy Garlic Pasta', '15-Minute Veggie Rice Bowl'],
-    tips: ['Short ingredient lists are often the fastest route to a great weeknight meal.'],
   };
 };
 
@@ -111,9 +87,9 @@ export const detectIngredients = async (imageUri: string): Promise<VisionDetectR
     async () => {
       const blob = await uriToBlob(imageUri);
       const formData = new FormData();
-      formData.append('image', blob, 'katlens-scan.jpg');
+      formData.append('file', blob, 'katlens-scan.jpg');
 
-      const response = await fetch(buildUrl('/api/vision/detect'), {
+      const response = await fetch(buildUrl('/api/vision/ingredients'), {
         method: 'POST',
         body: formData,
       });
@@ -133,11 +109,9 @@ export const detectIngredients = async (imageUri: string): Promise<VisionDetectR
 export const sendChatMessage = async (payload: ChatRequestPayload): Promise<ChatbotResponse> =>
   withMockFallback(
     async () => {
-      const response = await fetch(buildUrl('/api/chatbot/message'), {
+      const response = await fetch(buildUrl('/api/chat'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
@@ -150,7 +124,29 @@ export const sendChatMessage = async (payload: ChatRequestPayload): Promise<Chat
     () => buildMockChatResponse(payload)
   );
 
+export const suggestRecipes = async (
+  sessionId?: string,
+  diet?: string,
+  style?: string,
+  maxTimeMins?: number
+): Promise<RecipeSuggestResponse> => {
+  const params = new URLSearchParams();
+  if (sessionId) params.set('session_id', sessionId);
+  if (diet) params.set('diet', diet);
+  if (style) params.set('style', style);
+  if (maxTimeMins) params.set('max_time_mins', maxTimeMins.toString());
+
+  const response = await fetch(buildUrl(`/api/recipes/suggest?${params.toString()}`));
+
+  if (!response.ok) {
+    throw new Error('Recipe suggestion failed.');
+  }
+
+  return (await response.json()) as RecipeSuggestResponse;
+};
+
 export const apiClient = {
   detectIngredients,
   sendChatMessage,
+  suggestRecipes,
 };

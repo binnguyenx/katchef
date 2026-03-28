@@ -1,13 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { mascotTips } from '../../constants/mascotTips';
 import type { MascotState } from '../../types';
@@ -33,37 +25,40 @@ const chipByState: Record<MascotState, string> = {
 };
 
 export const KatChefMascot = ({ state = 'idle', tip }: KatChefMascotProps) => {
-  const bob = useSharedValue(0);
+  const bob = useRef(new Animated.Value(0)).current;
+  const tipOpacity = useRef(new Animated.Value(0)).current;
   const [showTip, setShowTip] = useState(false);
   const [tipIndex, setTipIndex] = useState(0);
 
   useEffect(() => {
-    bob.value = withRepeat(
-      withSequence(
-        withTiming(-8, { duration: 1600 }),
-        withTiming(8, { duration: 1600 })
-      ),
-      -1,
-      true
-    );
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bob, { toValue: -8, duration: 1600, useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 8, duration: 1600, useNativeDriver: true }),
+      ])
+    ).start();
   }, [bob]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: bob.value }],
-  }));
+  useEffect(() => {
+    Animated.timing(tipOpacity, {
+      toValue: showTip ? 1 : 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [showTip, tipOpacity]);
 
   const activeTip = useMemo(() => tip ?? mascotTips[tipIndex % mascotTips.length], [tip, tipIndex]);
 
   return (
     <View style={styles.wrapper}>
       {showTip ? (
-        <Animated.View entering={FadeInDown.duration(250)} style={styles.tipBubble}>
+        <Animated.View style={[styles.tipBubble, { opacity: tipOpacity }]}>
           <Text style={styles.tipTitle}>Did you know?</Text>
           <Text style={styles.tipText}>{activeTip}</Text>
         </Animated.View>
       ) : null}
 
-      <Animated.View style={animatedStyle}>
+      <Animated.View style={{ transform: [{ translateY: bob }] }}>
         <Pressable
           accessibilityRole="button"
           onPress={() => {

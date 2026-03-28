@@ -6,7 +6,7 @@ import {
   saveDetectedIngredients as persistDetectedIngredients,
   saveFridgeItem,
 } from '../services/firestore';
-import type { FridgeItem, IngredientDetection, IngredientFormValues, IngredientCategory } from '../types';
+import type { FridgeItem, IngredientFormValues, IngredientCategory } from '../types';
 import { getErrorMessage } from '../utils/error';
 
 type CategoryFilter = 'All' | IngredientCategory;
@@ -22,7 +22,7 @@ type FridgeState = {
   setCategoryFilter: (value: CategoryFilter) => void;
   upsertItem: (userId: string, values: IngredientFormValues, itemId?: string) => Promise<FridgeItem | null>;
   removeItem: (userId: string, itemId: string) => Promise<void>;
-  saveScanResults: (userId: string, ingredients: IngredientDetection[]) => Promise<void>;
+  saveScanResults: (userId: string, ingredients: Array<{ name: string; quantity: string; category: string }>) => Promise<void>;
   reset: () => void;
 };
 

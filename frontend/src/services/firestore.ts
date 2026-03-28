@@ -16,7 +16,6 @@ import type {
   AuthSession,
   ChatMessage,
   FridgeItem,
-  IngredientDetection,
   IngredientFormValues,
   UserProfile,
 } from '../types';
@@ -327,7 +326,7 @@ export const deleteFridgeItem = async (userId: string, itemId: string) => {
   await syncDerivedProfileStats(userId);
 };
 
-export const saveDetectedIngredients = async (userId: string, ingredients: IngredientDetection[]) => {
+export const saveDetectedIngredients = async (userId: string, ingredients: Array<{ name: string; quantity: string; category: string }>) => {
   const timestamp = nowIso();
 
   await Promise.all(
@@ -335,8 +334,8 @@ export const saveDetectedIngredients = async (userId: string, ingredients: Ingre
       upsertFridgeItemRecord(userId, {
         id: createId('scan'),
         name: ingredient.name.trim(),
-        quantity: ingredient.quantity.trim(),
-        category: ingredient.category,
+        quantity: (ingredient.quantity ?? '1').trim(),
+        category: (ingredient.category ?? 'Other') as FridgeItem['category'],
         source: 'scan',
         createdAt: timestamp,
         updatedAt: timestamp,

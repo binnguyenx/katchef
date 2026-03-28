@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { subscribeToAuthChanges } from '../services/auth';
 import { bootstrapUserProfile } from '../services/firestore';
@@ -16,7 +16,11 @@ export const useAuthBootstrap = () => {
   const resetFridge = useFridgeStore(state => state.reset);
   const clearChat = useChatStore(state => state.clear);
 
-  const handleAuthChange = useEffectEvent(async (session: AuthSession | null) => {
+  const stableRef = useRef({ setUser, setProfile, setBootstrapping, setAuthError, resetFridge, clearChat });
+  stableRef.current = { setUser, setProfile, setBootstrapping, setAuthError, resetFridge, clearChat };
+
+  const handleAuthChange = useCallback(async (session: AuthSession | null) => {
+    const { setUser, setProfile, setBootstrapping, setAuthError, resetFridge, clearChat } = stableRef.current;
     setBootstrapping(true);
     setAuthError(null);
 
@@ -38,7 +42,7 @@ export const useAuthBootstrap = () => {
     } finally {
       setBootstrapping(false);
     }
-  });
+  }, []);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthChanges(session => {

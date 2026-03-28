@@ -22,19 +22,6 @@ export const ChatBubble = ({ message }: ChatBubbleProps) => {
           <Text style={[styles.copy, isUser && styles.copyUser]}>{message.content}</Text>
         )}
 
-        {!isUser && message.suggestedRecipes?.length ? (
-          <View style={styles.block}>
-            <Text style={styles.blockTitle}>Suggested recipes</Text>
-            <Text style={styles.blockText}>{message.suggestedRecipes.join(', ')}</Text>
-          </View>
-        ) : null}
-
-        {!isUser && message.tips?.length ? (
-          <View style={styles.block}>
-            <Text style={styles.blockTitle}>Tips</Text>
-            <Text style={styles.blockText}>{message.tips.join(', ')}</Text>
-          </View>
-        ) : null}
       </View>
     </View>
   );

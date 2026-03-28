@@ -11,8 +11,16 @@ import { getUserProfile } from '../../services/firestore';
 import { useAuthStore } from '../../store/authStore';
 import { useFridgeStore } from '../../store/fridgeStore';
 import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
-import type { IngredientDetection, RootStackParamList } from '../../types';
+import type { IngredientCategory, RootStackParamList } from '../../types';
 import { formatConfidence } from '../../utils/format';
+
+type ScanItem = {
+  id: string;
+  name: string;
+  quantity: string;
+  category: IngredientCategory;
+  confidence: number;
+};
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ScanResults'>;
 
@@ -20,10 +28,13 @@ export const ScanResultsScreen = ({ navigation, route }: Props) => {
   const user = useAuthStore(state => state.user);
   const setProfile = useAuthStore(state => state.setProfile);
   const saveScanResults = useFridgeStore(state => state.saveScanResults);
-  const [ingredients, setIngredients] = useState<IngredientDetection[]>(
+  const [ingredients, setIngredients] = useState<ScanItem[]>(
     route.params.detections.map(ingredient => ({
-      ...ingredient,
-      id: ingredient.id ?? `${ingredient.name}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `${ingredient.name}-${Math.random().toString(36).slice(2, 8)}`,
+      name: ingredient.name,
+      quantity: ingredient.quantity ?? '1',
+      category: 'Other' as IngredientCategory,
+      confidence: ingredient.confidence ?? 0,
     }))
   );
   const [saving, setSaving] = useState(false);
@@ -37,7 +48,7 @@ export const ScanResultsScreen = ({ navigation, route }: Props) => {
     [ingredients]
   );
 
-  const updateIngredient = (id: string, patch: Partial<IngredientDetection>) => {
+  const updateIngredient = (id: string, patch: Partial<ScanItem>) => {
     setIngredients(current =>
       current.map(ingredient => (ingredient.id === id ? { ...ingredient, ...patch } : ingredient))
     );
@@ -50,7 +61,7 @@ export const ScanResultsScreen = ({ navigation, route }: Props) => {
         id: `manual-${Math.random().toString(36).slice(2, 8)}`,
         name: '',
         quantity: '',
-        category: 'Pantry',
+        category: 'Pantry' as IngredientCategory,
         confidence: 0,
       },
     ]);

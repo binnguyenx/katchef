@@ -54,28 +54,46 @@ export interface FridgeItem {
   updatedAt: string;
 }
 
+// Matches backend IngredientItem schema
 export interface IngredientDetection {
-  id: string;
   name: string;
-  quantity: string;
-  category: IngredientCategory;
-  confidence: number;
+  quantity?: string | null;
+  confidence?: number | null;
 }
 
 export interface VisionDetectResponse {
   ingredients: IngredientDetection[];
 }
 
-export interface ChatRequestPayload {
-  message: string;
-  fridgeItems?: Array<Pick<FridgeItem, 'name' | 'quantity' | 'category'>>;
-  sessionId?: string;
+// Matches backend RecipeSuggestion schema
+export interface RecipeSuggestion {
+  id: string;
+  title: string;
+  estimated_time_mins: number;
+  summary: string;
+  ingredients_used: string[];
+  image_hint?: string | null;
 }
 
+export interface RecipeSuggestResponse {
+  recipes: RecipeSuggestion[];
+}
+
+// Matches backend ChatRequest schema
+export interface ChatRequestPayload {
+  message: string;
+  ingredients: string[];
+  session_id?: string;
+}
+
+// Matches backend ChatResponse schema
 export interface ChatbotResponse {
   reply: string;
-  suggestedRecipes: string[];
-  tips: string[];
+  recipe?: {
+    title: string;
+    estimated_time_mins: number;
+    steps: string[];
+  } | null;
 }
 
 export interface ChatMessage {
@@ -83,8 +101,6 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   createdAt: string;
-  suggestedRecipes?: string[];
-  tips?: string[];
   pending?: boolean;
 }
 

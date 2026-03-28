@@ -37,11 +37,10 @@ export const ChatbotScreen = ({ navigation }: Props) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (user?.uid) {
-        void loadMessages(user.uid);
-        if (items.length === 0) {
-          void loadItems(user.uid);
-        }
+      const uid = user?.uid ?? 'anonymous';
+      void loadMessages(uid);
+      if (items.length === 0) {
+        void loadItems(uid);
       }
     }, [items.length, loadItems, loadMessages, user?.uid])
   );
@@ -102,9 +101,8 @@ export const ChatbotScreen = ({ navigation }: Props) => {
             label="Send"
             fullWidth={false}
             onPress={() => {
-              if (user?.uid) {
-                void sendMessage(user.uid, draft, items);
-              }
+              const uid = user?.uid ?? 'anonymous';
+              void sendMessage(uid, draft, items);
             }}
             loading={isSending}
           />

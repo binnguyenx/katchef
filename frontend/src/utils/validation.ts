@@ -26,7 +26,7 @@ export const forgotPasswordSchema = z.object({
 export const ingredientSchema = z.object({
   name: z.string().min(2, 'Ingredient name is required.'),
   quantity: z.string().min(1, 'Quantity is required.'),
-  category: z.enum(editableIngredientCategories),
+  category: z.enum(editableIngredientCategories as unknown as [string, ...string[]]),
 });
 
 export const chatComposerSchema = z.object({

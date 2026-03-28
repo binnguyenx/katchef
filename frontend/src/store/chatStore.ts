@@ -23,10 +23,7 @@ const buildMessage = (
 });
 
 const buildWelcomeMessage = (): ChatMessage =>
-  buildMessage('assistant', "Hi, I'm KatChef. Ask me for quick recipes, fridge rescue ideas, or cooking tips.", {
-    suggestedRecipes: ['Quick Omelette', '15-Minute Rice Bowl'],
-    tips: ['Share your fridge ingredients for more tailored suggestions.'],
-  });
+  buildMessage('assistant', "Hi, I'm KatChef. Ask me for quick recipes, fridge rescue ideas, or cooking tips.");
 
 type ChatState = {
   messages: ChatMessage[];
@@ -88,21 +85,14 @@ export const useChatStore = create<ChatState>()(
 
           const response = await sendChatMessage({
             message: trimmedContent,
-            fridgeItems: fridgeItems.map(item => ({
-              name: item.name,
-              quantity: item.quantity,
-              category: item.category,
-            })),
-            sessionId,
+            ingredients: fridgeItems.map(item => item.name),
+            session_id: sessionId,
           });
 
-          const assistantMessage = buildMessage('assistant', response.reply, {
-            suggestedRecipes: response.suggestedRecipes,
-            tips: response.tips,
-          });
+          const assistantMessage = buildMessage('assistant', response.reply);
 
           await saveChatMessage(userId, assistantMessage, sessionId);
-          await awardXp(userId, 6, { recipesSuggested: response.suggestedRecipes.length });
+          await awardXp(userId, 6, { recipesSuggested: 1 });
 
           set(state => ({
             isSending: false,
