@@ -75,6 +75,7 @@ def save_scan_result(
 ) -> None:
     db = get_firestore_client()
     if db is None:
+        logger.warning("save_scan_result: Firestore client is None (mock_mode or Firebase offline) — ingredients NOT saved")
         return
     sid = _sid(session_id)
     ing_payload = _ingredients_to_firestore(ingredients)

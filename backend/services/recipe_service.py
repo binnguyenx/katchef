@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import logging
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from ai.recipes.prompts import RECIPE_SYSTEM_PROMPT, recipe_prompt
 from backend.config.settings import get_settings
@@ -35,11 +36,7 @@ def suggest_recipes(req: RecipeSuggestRequest) -> RecipeSuggestResponse:
     if settings.mock_mode or not settings.gemini_api_key.strip():
         return RecipeSuggestResponse(recipes=MOCK_RECIPES)
 
-    genai.configure(api_key=settings.gemini_api_key)
-    model = genai.GenerativeModel(
-        settings.gemini_model,
-        system_instruction=RECIPE_SYSTEM_PROMPT,
-    )
+    client = genai.Client(api_key=settings.gemini_api_key)
 
     pref_parts = []
     if req.preferences:
@@ -54,7 +51,11 @@ def suggest_recipes(req: RecipeSuggestRequest) -> RecipeSuggestResponse:
     prompt = recipe_prompt(ingredient_names, preferences)
 
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=settings.gemini_model,
+            contents=prompt,
+            config=types.GenerateContentConfig(system_instruction=RECIPE_SYSTEM_PROMPT),
+        )
         text = (response.text or "").strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
