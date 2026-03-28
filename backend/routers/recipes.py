@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
-
-logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -42,7 +39,6 @@ async def suggest(
     """Fetch ingredients saved from the last vision scan and suggest recipes."""
     sid_label = session_id or "anonymous"
     raw = get_last_scan_ingredients(session_id)
-    logger.info("[suggest] session=%s | firestore returned %d raw items: %s", sid_label, len(raw), raw)
     ingredients = _ingredients_from_firestore(raw)
     if not ingredients:
         raise HTTPException(
@@ -55,4 +51,3 @@ async def suggest(
     result = suggest_recipes(req)
     save_recipe_suggestions(session_id, result.recipes)
     return result
-

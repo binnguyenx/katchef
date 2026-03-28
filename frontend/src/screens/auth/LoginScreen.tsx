@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/common/InlineAlert';
 import { Input } from '../../components/common/Input';
 import { Screen } from '../../components/common/Screen';
 import { signInWithEmail, signInWithGoogle } from '../../services/auth';
 import { useAuthStore } from '../../store/authStore';
-import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
+import { authScreenStyles } from '../../theme/authScreen';
 import type { AuthStackParamList, LoginFormValues } from '../../types';
 import { getErrorMessage } from '../../utils/error';
 import { loginSchema } from '../../utils/validation';
@@ -62,31 +63,27 @@ export const LoginScreen = ({ navigation }: Props) => {
 
   return (
     <Screen scroll>
-      <Card style={styles.hero}>
-        <Text style={styles.kicker}>KatChef</Text>
-        <Text style={styles.title}>Your cat-powered cooking sidekick.</Text>
-        <Text style={styles.subtitle}>
+      <Card style={authScreenStyles.heroPrimary}>
+        <Text style={authScreenStyles.kicker}>KatChef</Text>
+        <Text style={authScreenStyles.heroTitle}>Your cat-powered cooking sidekick.</Text>
+        <Text style={authScreenStyles.heroSubtitle}>
           Scan ingredients, organize your fridge, and chat your way into faster meals.
         </Text>
       </Card>
 
       {dataMode === 'demo' ? (
-        <View style={styles.banner}>
-          <Text style={styles.bannerTitle}>Demo mode is active.</Text>
-          <Text style={styles.bannerCopy}>
+        <View style={authScreenStyles.demoBanner}>
+          <Text style={authScreenStyles.demoBannerTitle}>Demo mode is active.</Text>
+          <Text style={authScreenStyles.demoBannerCopy}>
             Firebase config is missing, so KatChef stores everything locally for now.
           </Text>
         </View>
       ) : null}
 
-      {bootstrapError ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{bootstrapError}</Text>
-        </View>
-      ) : null}
+      {bootstrapError ? <InlineAlert variant="error" message={bootstrapError} /> : null}
 
       <Card>
-        <Text style={styles.sectionTitle}>Welcome back</Text>
+        <Text style={authScreenStyles.sectionTitle}>Welcome back</Text>
 
         <Controller
           control={control}
@@ -120,11 +117,7 @@ export const LoginScreen = ({ navigation }: Props) => {
           )}
         />
 
-        {localError ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{localError}</Text>
-          </View>
-        ) : null}
+        {localError ? <InlineAlert variant="error" message={localError} /> : null}
 
         <Button label="Log In" onPress={onSubmit} loading={submitting} />
         <Button label="Continue with Google" variant="outline" onPress={onGoogle} disabled={submitting} />
@@ -136,74 +129,10 @@ export const LoginScreen = ({ navigation }: Props) => {
         />
       </Card>
 
-      <Card style={styles.footerCard}>
-        <Text style={styles.footerCopy}>New around here?</Text>
+      <Card style={authScreenStyles.footerCard}>
+        <Text style={authScreenStyles.footerCopy}>New around here?</Text>
         <Button label="Create an account" variant="secondary" onPress={() => navigation.navigate('SignUp')} />
       </Card>
     </Screen>
   );
 };
-
-const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: colors.primary,
-  },
-  kicker: {
-    fontFamily: fontFamilies.bodySemiBold,
-    fontSize: fontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
-    textTransform: 'uppercase',
-  },
-  title: {
-    fontFamily: fontFamilies.heading,
-    fontSize: fontSizes.hero,
-    lineHeight: 42,
-    color: colors.white,
-  },
-  subtitle: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.md,
-    lineHeight: 24,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  banner: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    gap: spacing.xxs,
-  },
-  bannerTitle: {
-    fontFamily: fontFamilies.bodySemiBold,
-    fontSize: fontSizes.sm,
-    color: colors.secondaryDark,
-  },
-  bannerCopy: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.sm,
-    color: colors.text,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    fontFamily: fontFamilies.headingMedium,
-    fontSize: fontSizes.xl,
-    color: colors.text,
-  },
-  footerCard: {
-    alignItems: 'flex-start',
-  },
-  footerCopy: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
-  },
-  errorBox: {
-    backgroundColor: 'rgba(217, 90, 90, 0.12)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-  },
-  errorText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.danger,
-  },
-});

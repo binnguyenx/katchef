@@ -6,12 +6,13 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatBubble } from '../../components/chat/ChatBubble';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/common/InlineAlert';
 import { Input } from '../../components/common/Input';
 import { Screen } from '../../components/common/Screen';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import { useFridgeStore } from '../../store/fridgeStore';
-import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
+import { colors, fontFamilies, fontSizes, radii, screenSharedStyles, spacing } from '../../theme';
 import type { MainTabParamList } from '../../types';
 
 const quickPrompts = [
@@ -52,8 +53,8 @@ export const ChatbotScreen = ({ navigation }: Props) => {
   return (
     <Screen scroll={false}>
       <Card>
-        <Text style={styles.title}>KatChef Chat</Text>
-        <Text style={styles.subtitle}>
+        <Text style={screenSharedStyles.pageTitle}>KatChef Chat</Text>
+        <Text style={screenSharedStyles.pageSubtitle}>
           Ask for recipe ideas, ingredient rescue plans, or cooking tips. KatChef can use MyFridge when it helps.
         </Text>
         <Text style={styles.contextText}>
@@ -82,11 +83,7 @@ export const ChatbotScreen = ({ navigation }: Props) => {
         ))}
       </ScrollView>
 
-      {error ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
+      {error ? <InlineAlert variant="error" message={error} /> : null}
 
       <Card>
         <Input
@@ -113,17 +110,6 @@ export const ChatbotScreen = ({ navigation }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  title: {
-    fontFamily: fontFamilies.heading,
-    fontSize: fontSizes.xxl,
-    color: colors.text,
-  },
-  subtitle: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
-    lineHeight: 24,
-  },
   contextText: {
     fontFamily: fontFamilies.bodyMedium,
     fontSize: fontSizes.sm,
@@ -149,16 +135,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.bodyMedium,
     fontSize: fontSizes.sm,
     color: colors.text,
-  },
-  errorBox: {
-    backgroundColor: 'rgba(217, 90, 90, 0.12)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-  },
-  errorText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.danger,
   },
   composerActions: {
     flexDirection: 'row',

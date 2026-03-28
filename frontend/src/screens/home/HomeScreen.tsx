@@ -1,6 +1,4 @@
-import { useCallback } from 'react';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { useFocusEffect } from '@react-navigation/native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../components/common/Button';
@@ -8,10 +6,10 @@ import { Card } from '../../components/common/Card';
 import { Screen } from '../../components/common/Screen';
 import { KatChefMascot } from '../../components/mascot/KatChefMascot';
 import { getLevelProgress } from '../../constants/levels';
-import { getUserProfile } from '../../services/firestore';
+import { useProfileFridgeOnFocus } from '../../hooks/useProfileFridgeOnFocus';
 import { useAuthStore } from '../../store/authStore';
 import { useFridgeStore } from '../../store/fridgeStore';
-import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
+import { colors, fontFamilies, fontSizes, radii, screenSharedStyles, spacing } from '../../theme';
 import type { MainTabParamList } from '../../types';
 import { formatDisplayName, pluralize } from '../../utils/format';
 
@@ -20,25 +18,9 @@ type Props = BottomTabScreenProps<MainTabParamList, 'Home'>;
 export const HomeScreen = ({ navigation }: Props) => {
   const user = useAuthStore(state => state.user);
   const profile = useAuthStore(state => state.profile);
-  const setProfile = useAuthStore(state => state.setProfile);
   const dataMode = useAuthStore(state => state.dataMode);
   const items = useFridgeStore(state => state.items);
-  const loadItems = useFridgeStore(state => state.loadItems);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!user?.uid) {
-        return;
-      }
-
-      void loadItems(user.uid);
-      void getUserProfile(user.uid).then(nextProfile => {
-        if (nextProfile) {
-          setProfile(nextProfile);
-        }
-      });
-    }, [loadItems, setProfile, user?.uid])
-  );
+  useProfileFridgeOnFocus(user?.uid);
 
   const xp = profile?.xp ?? 0;
   const progress = getLevelProgress(xp);
@@ -88,7 +70,7 @@ export const HomeScreen = ({ navigation }: Props) => {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>MyFridge preview</Text>
+        <Text style={screenSharedStyles.cardSectionTitle}>MyFridge preview</Text>
         <Text style={styles.sectionSubtitle}>
           {items.length > 0
             ? `${pluralize(items.length, 'ingredient')} ready to use.`
@@ -112,7 +94,7 @@ export const HomeScreen = ({ navigation }: Props) => {
         <Button label="Open MyFridge" variant="outline" onPress={() => navigation.navigate('MyFridge')} />
       </Card>
 
-      <Text style={styles.sectionTitle}>Suggested actions</Text>
+      <Text style={screenSharedStyles.cardSectionTitle}>Suggested actions</Text>
 
       <Card onPress={() => navigation.navigate('Scan')} style={styles.actionCard}>
         <Text style={styles.actionTitle}>Run a KatLens scan</Text>
@@ -210,11 +192,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: radii.pill,
     backgroundColor: colors.accent,
-  },
-  sectionTitle: {
-    fontFamily: fontFamilies.headingMedium,
-    fontSize: fontSizes.xl,
-    color: colors.text,
   },
   sectionSubtitle: {
     fontFamily: fontFamilies.body,

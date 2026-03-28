@@ -23,10 +23,15 @@ export const useAuthStore = create<AuthState>(set => ({
   authError: null,
   dataMode,
   setUser: user =>
-    set(state => ({
-      user,
-      profile: user ? state.profile : null,
-    })),
+    set(state => {
+      if (!user) {
+        return { user: null, profile: null };
+      }
+      return {
+        user,
+        profile: state.profile?.id === user.uid ? state.profile : null,
+      };
+    }),
   setProfile: profile => set({ profile }),
   setBootstrapping: isBootstrapping => set({ isBootstrapping }),
   setAuthError: authError => set({ authError }),

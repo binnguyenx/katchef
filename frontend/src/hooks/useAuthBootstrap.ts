@@ -38,6 +38,7 @@ export const useAuthBootstrap = () => {
       const profile = await bootstrapUserProfile(session);
       setProfile(profile);
     } catch (error) {
+      setProfile(null);
       setAuthError(getErrorMessage(error, 'We could not restore your KatChef session.'));
     } finally {
       setBootstrapping(false);

@@ -6,8 +6,17 @@ import type {
   RecipeSuggestResponse,
   VisionDetectResponse,
 } from '../types';
+import {
+  getErrorMessage,
+  getNetworkFailureMessage,
+  HttpApiError,
+  parseHttpErrorBody,
+} from '../utils/error';
 
 const buildUrl = (path: string) => `${config.apiBaseUrl}${path}`;
+
+const VISION_PATH = '/api/vision/ingredients';
+const CHAT_PATH = '/api/chat';
 
 const demoDetections: IngredientDetection[] = [
   { name: 'Tomato', quantity: '2 items', confidence: 0.92 },
@@ -69,16 +78,73 @@ const withMockFallback = async <T>(
   try {
     return await performRequest();
   } catch (error) {
-    if (__DEV__) {
-      return buildFallback();
-    }
-
-    throw error;
+    throw new Error(getErrorMessage(error, 'Request failed.'));
   }
 };
 
+const fetchOrThrow = async (url: string, init?: RequestInit): Promise<Response> => {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    throw new Error(getNetworkFailureMessage(error));
+  }
+};
+
+const readJsonOk = async <T>(response: Response, errorFallback: string): Promise<T> => {
+  const text = await response.text();
+
+  if (response.ok) {
+    if (!text.trim()) {
+      return {} as T;
+    }
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new HttpApiError('The server returned invalid data.', response.status);
+    }
+  }
+
+  const msg = parseHttpErrorBody(response.status, text, errorFallback);
+  throw new HttpApiError(msg, response.status);
+};
+
+type BackendIngredientItem = {
+  name: string;
+  quantity?: string | null;
+  confidence?: number | null;
+};
+
+type BackendVisionResponse = {
+  ingredients: BackendIngredientItem[];
+};
+
+const mapVisionResponse = (data: BackendVisionResponse): VisionDetectResponse => ({
+  ingredients: data.ingredients.map(item => ({
+    name: item.name.trim(),
+    quantity: (item.quantity && item.quantity.trim()) || '1 item',
+    confidence: typeof item.confidence === 'number' ? item.confidence : 0.85,
+  })),
+});
+
+type BackendChatResponse = {
+  reply: string;
+  recipe?: {
+    title: string;
+    estimated_time_mins?: number;
+    steps?: string[];
+  } | null;
+};
+
+const mapChatResponse = (data: BackendChatResponse): ChatbotResponse => ({
+  reply: data.reply,
+  recipe: data.recipe ?? null,
+});
+
 const uriToBlob = async (uri: string) => {
-  const response = await fetch(uri);
+  const response = await fetchOrThrow(uri);
+  if (!response.ok) {
+    throw new Error(`Could not read image (HTTP ${response.status}).`);
+  }
   return response.blob();
 };
 
@@ -89,16 +155,13 @@ export const detectIngredients = async (imageUri: string): Promise<VisionDetectR
       const formData = new FormData();
       formData.append('file', blob, 'katlens-scan.jpg');
 
-      const response = await fetch(buildUrl('/api/vision/ingredients'), {
+      const response = await fetchOrThrow(buildUrl(VISION_PATH), {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error('Ingredient detection failed.');
-      }
-
-      return (await response.json()) as VisionDetectResponse;
+      const raw = await readJsonOk<BackendVisionResponse>(response, 'Ingredient detection failed.');
+      return mapVisionResponse(raw);
     },
     async () => {
       await delay(900);
@@ -109,17 +172,14 @@ export const detectIngredients = async (imageUri: string): Promise<VisionDetectR
 export const sendChatMessage = async (payload: ChatRequestPayload): Promise<ChatbotResponse> =>
   withMockFallback(
     async () => {
-      const response = await fetch(buildUrl('/api/chat'), {
+      const response = await fetchOrThrow(buildUrl(CHAT_PATH), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        throw new Error('Chat request failed.');
-      }
-
-      return (await response.json()) as ChatbotResponse;
+      const raw = await readJsonOk<BackendChatResponse>(response, 'Chat request failed.');
+      return mapChatResponse(raw);
     },
     () => buildMockChatResponse(payload)
   );
@@ -136,13 +196,8 @@ export const suggestRecipes = async (
   if (style) params.set('style', style);
   if (maxTimeMins) params.set('max_time_mins', maxTimeMins.toString());
 
-  const response = await fetch(buildUrl(`/api/recipes/suggest?${params.toString()}`));
-
-  if (!response.ok) {
-    throw new Error('Recipe suggestion failed.');
-  }
-
-  return (await response.json()) as RecipeSuggestResponse;
+  const response = await fetchOrThrow(buildUrl(`/api/recipes/suggest?${params.toString()}`));
+  return readJsonOk<RecipeSuggestResponse>(response, 'Recipe suggestion failed.');
 };
 
 export const apiClient = {

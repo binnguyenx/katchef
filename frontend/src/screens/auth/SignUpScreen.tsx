@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/common/InlineAlert';
 import { Input } from '../../components/common/Input';
 import { Screen } from '../../components/common/Screen';
 import { signUpWithEmail } from '../../services/auth';
-import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
+import { useAuthStore } from '../../store/authStore';
+import { authScreenStyles } from '../../theme/authScreen';
 import type { AuthStackParamList, SignUpFormValues } from '../../types';
 import { getErrorMessage } from '../../utils/error';
 import { signUpSchema } from '../../utils/validation';
@@ -17,6 +19,7 @@ import { signUpSchema } from '../../utils/validation';
 type Props = NativeStackScreenProps<AuthStackParamList, 'SignUp'>;
 
 export const SignUpScreen = ({ navigation }: Props) => {
+  const dataMode = useAuthStore(state => state.dataMode);
   const {
     control,
     handleSubmit,
@@ -48,16 +51,25 @@ export const SignUpScreen = ({ navigation }: Props) => {
 
   return (
     <Screen scroll>
-      <Card style={styles.hero}>
-        <Text style={styles.kicker}>Phase 1 Frontend</Text>
-        <Text style={styles.title}>Create your KatChef account.</Text>
-        <Text style={styles.subtitle}>
+      <Card style={authScreenStyles.heroSecondary}>
+        <Text style={authScreenStyles.kicker}>KatChef</Text>
+        <Text style={authScreenStyles.heroTitle}>Create your KatChef account.</Text>
+        <Text style={authScreenStyles.heroSubtitle}>
           Start building your smart fridge, unlock XP, and get recipe ideas in minutes.
         </Text>
       </Card>
 
+      {dataMode === 'demo' ? (
+        <View style={authScreenStyles.demoBanner}>
+          <Text style={authScreenStyles.demoBannerTitle}>Demo mode is active.</Text>
+          <Text style={authScreenStyles.demoBannerCopy}>
+            Thêm EXPO_PUBLIC_FIREBASE_* trong frontend/.env để đăng ký/đăng nhập qua Firebase.
+          </Text>
+        </View>
+      ) : null}
+
       <Card>
-        <Text style={styles.sectionTitle}>Let&apos;s set up your kitchen</Text>
+        <Text style={authScreenStyles.sectionTitle}>Let&apos;s set up your kitchen</Text>
 
         <Controller
           control={control}
@@ -120,11 +132,7 @@ export const SignUpScreen = ({ navigation }: Props) => {
           )}
         />
 
-        {localError ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{localError}</Text>
-          </View>
-        ) : null}
+        {localError ? <InlineAlert variant="error" message={localError} /> : null}
 
         <Button label="Create account" onPress={onSubmit} loading={submitting} />
         <Button label="Back to login" variant="ghost" onPress={() => navigation.goBack()} />
@@ -132,42 +140,3 @@ export const SignUpScreen = ({ navigation }: Props) => {
     </Screen>
   );
 };
-
-const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: colors.secondary,
-  },
-  kicker: {
-    fontFamily: fontFamilies.bodySemiBold,
-    fontSize: fontSizes.sm,
-    color: 'rgba(255,255,255,0.84)',
-    textTransform: 'uppercase',
-  },
-  title: {
-    fontFamily: fontFamilies.heading,
-    fontSize: fontSizes.hero,
-    lineHeight: 42,
-    color: colors.white,
-  },
-  subtitle: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.md,
-    lineHeight: 24,
-    color: 'rgba(255,255,255,0.92)',
-  },
-  sectionTitle: {
-    fontFamily: fontFamilies.headingMedium,
-    fontSize: fontSizes.xl,
-    color: colors.text,
-  },
-  errorBox: {
-    backgroundColor: 'rgba(217, 90, 90, 0.12)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-  },
-  errorText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.danger,
-  },
-});

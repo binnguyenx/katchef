@@ -1,7 +1,5 @@
-import { useCallback, useState } from 'react';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
-import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -9,8 +7,8 @@ import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
 import { Screen } from '../../components/common/Screen';
 import { getLevelProgress } from '../../constants/levels';
-import { signOut } from '../../services/auth';
-import { getUserProfile } from '../../services/firestore';
+import { useProfileFridgeOnFocus } from '../../hooks/useProfileFridgeOnFocus';
+import { useSignOutAction } from '../../hooks/useSignOutAction';
 import { useAuthStore } from '../../store/authStore';
 import { useFridgeStore } from '../../store/fridgeStore';
 import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
@@ -25,26 +23,11 @@ type Props = CompositeScreenProps<
 export const ProfileScreen = ({ navigation }: Props) => {
   const user = useAuthStore(state => state.user);
   const profile = useAuthStore(state => state.profile);
-  const setProfile = useAuthStore(state => state.setProfile);
   const dataMode = useAuthStore(state => state.dataMode);
   const fridgeItems = useFridgeStore(state => state.items);
-  const loadItems = useFridgeStore(state => state.loadItems);
-  const [loggingOut, setLoggingOut] = useState(false);
+  const { signingOut, runSignOut } = useSignOutAction();
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!user?.uid) {
-        return;
-      }
-
-      void loadItems(user.uid);
-      void getUserProfile(user.uid).then(nextProfile => {
-        if (nextProfile) {
-          setProfile(nextProfile);
-        }
-      });
-    }, [loadItems, setProfile, user?.uid])
-  );
+  useProfileFridgeOnFocus(user?.uid);
 
   const displayName = formatDisplayName(profile?.displayName, user?.email);
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -109,19 +92,7 @@ export const ProfileScreen = ({ navigation }: Props) => {
       </Card>
 
       <Button label="Settings" variant="outline" onPress={() => navigation.navigate('Settings')} />
-      <Button
-        label="Log out"
-        variant="danger"
-        loading={loggingOut}
-        onPress={async () => {
-          setLoggingOut(true);
-          try {
-            await signOut();
-          } finally {
-            setLoggingOut(false);
-          }
-        }}
-      />
+      <Button label="Log out" variant="danger" loading={signingOut} onPress={() => void runSignOut()} />
     </Screen>
   );
 };

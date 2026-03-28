@@ -3,13 +3,14 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text } from 'react-native';
 
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/common/InlineAlert';
 import { Screen } from '../../components/common/Screen';
 import { demoScanImageUri, detectIngredients } from '../../services/api';
-import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
+import { colors, radii, screenSharedStyles, spacing } from '../../theme';
 import type { MainTabParamList, RootStackParamList } from '../../types';
 import { getErrorMessage } from '../../utils/error';
 
@@ -60,8 +61,8 @@ export const ScanScreen = ({ navigation }: Props) => {
   return (
     <Screen scroll>
       <Card>
-        <Text style={styles.title}>KatLens scan</Text>
-        <Text style={styles.subtitle}>
+        <Text style={screenSharedStyles.pageTitle}>KatLens scan</Text>
+        <Text style={screenSharedStyles.pageSubtitle}>
           Capture ingredients, preview the result, then confirm detections before saving them.
         </Text>
       </Card>
@@ -82,8 +83,8 @@ export const ScanScreen = ({ navigation }: Props) => {
         </Card>
       ) : (
         <Card>
-          <Text style={styles.panelTitle}>Camera access</Text>
-          <Text style={styles.panelCopy}>
+          <Text style={screenSharedStyles.panelTitle}>Camera access</Text>
+          <Text style={screenSharedStyles.panelCopy}>
             Browser previews inside Codespaces can limit camera access. You can request permission or jump straight into a demo scan flow.
           </Text>
           <Button label="Enable camera" onPress={() => void requestPermission()} />
@@ -91,27 +92,12 @@ export const ScanScreen = ({ navigation }: Props) => {
         </Card>
       )}
 
-      {error ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
+      {error ? <InlineAlert variant="error" message={error} /> : null}
     </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  title: {
-    fontFamily: fontFamilies.heading,
-    fontSize: fontSizes.xxl,
-    color: colors.text,
-  },
-  subtitle: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
-    lineHeight: 24,
-  },
   camera: {
     width: '100%',
     height: 420,
@@ -126,26 +112,5 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     gap: spacing.sm,
-  },
-  panelTitle: {
-    fontFamily: fontFamilies.headingMedium,
-    fontSize: fontSizes.lg,
-    color: colors.text,
-  },
-  panelCopy: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.sm,
-    lineHeight: 20,
-    color: colors.textMuted,
-  },
-  errorBox: {
-    backgroundColor: 'rgba(217, 90, 90, 0.12)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-  },
-  errorText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.danger,
   },
 });

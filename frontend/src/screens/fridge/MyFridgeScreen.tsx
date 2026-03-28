@@ -8,13 +8,14 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { IngredientCard } from '../../components/fridge/IngredientCard';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/common/InlineAlert';
 import { Input } from '../../components/common/Input';
 import { LoadingState } from '../../components/common/LoadingState';
 import { Screen } from '../../components/common/Screen';
 import { ingredientCategories } from '../../constants/categories';
 import { useAuthStore } from '../../store/authStore';
 import { useFridgeStore } from '../../store/fridgeStore';
-import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
+import { colors, fontFamilies, fontSizes, radii, screenSharedStyles, spacing } from '../../theme';
 import type { MainTabParamList, RootStackParamList } from '../../types';
 import { pluralize } from '../../utils/format';
 
@@ -60,8 +61,8 @@ export const MyFridgeScreen = ({ navigation }: Props) => {
   return (
     <Screen scroll>
       <Card>
-        <Text style={styles.title}>MyFridge</Text>
-        <Text style={styles.subtitle}>
+        <Text style={screenSharedStyles.pageTitle}>MyFridge</Text>
+        <Text style={screenSharedStyles.pageSubtitle}>
           {pluralize(items.length, 'ingredient')} tracked and ready for recipe suggestions.
         </Text>
         <Button label="Add ingredient" onPress={() => navigation.navigate('EditIngredient', {})} />
@@ -92,11 +93,7 @@ export const MyFridgeScreen = ({ navigation }: Props) => {
 
       {isLoading ? <LoadingState label="Refreshing your fridge..." /> : null}
 
-      {error ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
+      {error ? <InlineAlert variant="error" message={error} /> : null}
 
       {!isLoading && filteredItems.length === 0 ? (
         <Card>
@@ -134,17 +131,6 @@ export const MyFridgeScreen = ({ navigation }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  title: {
-    fontFamily: fontFamilies.heading,
-    fontSize: fontSizes.xxl,
-    color: colors.text,
-  },
-  subtitle: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
-    lineHeight: 24,
-  },
   filterRow: {
     gap: spacing.sm,
   },
@@ -164,16 +150,6 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: colors.white,
-  },
-  errorBox: {
-    backgroundColor: 'rgba(217, 90, 90, 0.12)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-  },
-  errorText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.danger,
   },
   emptyTitle: {
     fontFamily: fontFamilies.headingMedium,

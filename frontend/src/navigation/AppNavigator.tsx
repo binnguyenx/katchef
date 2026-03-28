@@ -1,7 +1,8 @@
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { SessionSyncBanner } from '../components/common/SessionSyncBanner';
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { ScanScreen } from '../screens/scan/ScanScreen';
 import { ScanResultsScreen } from '../screens/scan/ScanResultsScreen';
@@ -63,22 +64,32 @@ const MainTabs = () => (
 );
 
 export const AppNavigator = () => (
-  <Stack.Navigator
-    screenOptions={{
-      animation: 'slide_from_right',
-      headerTintColor: colors.text,
-      headerTitleStyle: {
-        fontFamily: fontFamilies.headingMedium,
-        fontSize: fontSizes.md,
-      },
-      contentStyle: {
-        backgroundColor: colors.background,
-      },
-    }}
-  >
-    <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-    <Stack.Screen name="ScanResults" component={ScanResultsScreen} options={{ title: 'Confirm Scan' }} />
-    <Stack.Screen name="EditIngredient" component={EditIngredientScreen} options={{ title: 'Ingredient' }} />
-    <Stack.Screen name="Settings" component={SettingsScreen} />
-  </Stack.Navigator>
+  <View style={styles.root}>
+    <SessionSyncBanner />
+    <Stack.Navigator
+      screenOptions={{
+        animation: 'slide_from_right',
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+          fontFamily: fontFamilies.headingMedium,
+          fontSize: fontSizes.md,
+        },
+        contentStyle: {
+          backgroundColor: colors.background,
+        },
+      }}
+    >
+      <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+      <Stack.Screen name="ScanResults" component={ScanResultsScreen} options={{ title: 'Confirm Scan' }} />
+      <Stack.Screen name="EditIngredient" component={EditIngredientScreen} options={{ title: 'Ingredient' }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+    </Stack.Navigator>
+  </View>
 );
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+});

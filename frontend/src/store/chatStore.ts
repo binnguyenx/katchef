@@ -6,6 +6,7 @@ import { sendChatMessage } from '../services/api';
 import { awardXp, getChatMessages, saveChatMessage } from '../services/firestore';
 import { storageKeys } from '../constants/storageKeys';
 import type { ChatMessage, FridgeItem } from '../types';
+import { isAuthUserStill } from '../utils/authScope';
 import { getErrorMessage } from '../utils/error';
 
 const DEFAULT_SESSION_ID = 'default';
@@ -49,11 +50,17 @@ export const useChatStore = create<ChatState>()(
       loadMessages: async userId => {
         try {
           const messages = await getChatMessages(userId, get().activeSessionId);
+          if (!isAuthUserStill(userId)) {
+            return;
+          }
           set({
             messages: messages.length > 0 ? messages : [buildWelcomeMessage()],
             error: null,
           });
         } catch (error) {
+          if (!isAuthUserStill(userId)) {
+            return;
+          }
           set({
             error: getErrorMessage(error, 'We could not load your chat history.'),
             messages: [buildWelcomeMessage()],
@@ -82,32 +89,112 @@ export const useChatStore = create<ChatState>()(
 
         try {
           await saveChatMessage(userId, userMessage, sessionId);
+        } catch (saveUserErr) {
+          if (!isAuthUserStill(userId)) {
+            set({ isSending: false });
+            return;
+          }
+          set(state => ({
+            isSending: false,
+            error: getErrorMessage(saveUserErr, 'Could not save your message.'),
+            messages: state.messages.filter(
+              message => message.id !== pendingMessage.id && message.id !== userMessage.id
+            ),
+          }));
+          return;
+        }
 
-          const response = await sendChatMessage({
+        if (!isAuthUserStill(userId)) {
+          set({ isSending: false });
+          return;
+        }
+
+        let response;
+        try {
+          response = await sendChatMessage({
             message: trimmedContent,
             ingredients: fridgeItems.map(item => item.name),
             session_id: sessionId,
           });
+        } catch (apiErr) {
+          if (!isAuthUserStill(userId)) {
+            set({ isSending: false });
+            return;
+          }
+          try {
+            const synced = await getChatMessages(userId, sessionId);
+            if (!isAuthUserStill(userId)) {
+              set({ isSending: false });
+              return;
+            }
+            set({
+              isSending: false,
+              error: getErrorMessage(apiErr, 'KatChef could not answer just yet.'),
+              messages: synced.length > 0 ? synced : [buildWelcomeMessage()],
+            });
+          } catch {
+            if (!isAuthUserStill(userId)) {
+              set({ isSending: false });
+              return;
+            }
+            set(state => ({
+              isSending: false,
+              error: getErrorMessage(apiErr, 'KatChef could not answer just yet.'),
+              messages: state.messages.filter(message => message.id !== pendingMessage.id),
+            }));
+          }
+          return;
+        }
 
-          const assistantMessage = buildMessage('assistant', response.reply);
+        if (!isAuthUserStill(userId)) {
+          set({ isSending: false });
+          return;
+        }
 
+        const assistantMessage = buildMessage('assistant', response.reply);
+
+        try {
           await saveChatMessage(userId, assistantMessage, sessionId);
-          await awardXp(userId, 6, { recipesSuggested: 1 });
-
+        } catch (saveAssistantErr) {
+          if (!isAuthUserStill(userId)) {
+            set({ isSending: false });
+            return;
+          }
           set(state => ({
             isSending: false,
+            error: getErrorMessage(saveAssistantErr, 'Reply could not be saved. It may disappear after refresh.'),
             messages: [
               ...state.messages.filter(message => message.id !== pendingMessage.id),
               assistantMessage,
             ],
           }));
-        } catch (error) {
-          set(state => ({
-            isSending: false,
-            error: getErrorMessage(error, 'KatChef could not answer just yet.'),
-            messages: state.messages.filter(message => message.id !== pendingMessage.id),
-          }));
+          return;
         }
+
+        if (!isAuthUserStill(userId)) {
+          set({ isSending: false });
+          return;
+        }
+
+        try {
+          await awardXp(userId, 6, { recipesSuggested: response.recipe ? 1 : 0 });
+        } catch {
+          /* XP optional — reply already persisted */
+        }
+
+        if (!isAuthUserStill(userId)) {
+          set({ isSending: false });
+          return;
+        }
+
+        set(state => ({
+          isSending: false,
+          error: null,
+          messages: [
+            ...state.messages.filter(message => message.id !== pendingMessage.id),
+            assistantMessage,
+          ],
+        }));
       },
       clear: () =>
         set({

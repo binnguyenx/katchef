@@ -47,7 +47,15 @@ const notifyDemoListeners = (session: AuthSession | null) => {
 
 const readDemoSession = async () => {
   const rawSession = await AsyncStorage.getItem(storageKeys.demoAuth);
-  return rawSession ? (JSON.parse(rawSession) as AuthSession) : null;
+  if (!rawSession) {
+    return null;
+  }
+  try {
+    return JSON.parse(rawSession) as AuthSession;
+  } catch {
+    await AsyncStorage.removeItem(storageKeys.demoAuth);
+    return null;
+  }
 };
 
 const writeDemoSession = async (session: AuthSession | null) => {

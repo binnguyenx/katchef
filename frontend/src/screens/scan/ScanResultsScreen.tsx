@@ -1,17 +1,19 @@
 import { useMemo, useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/common/InlineAlert';
 import { Input } from '../../components/common/Input';
 import { Screen } from '../../components/common/Screen';
-import { editableIngredientCategories } from '../../constants/categories';
+import { CategoryChipPicker } from '../../components/fridge/CategoryChipPicker';
 import { getUserProfile } from '../../services/firestore';
 import { useAuthStore } from '../../store/authStore';
 import { useFridgeStore } from '../../store/fridgeStore';
-import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
+import { colors, fontFamilies, fontSizes, radii, screenSharedStyles, spacing } from '../../theme';
 import type { IngredientCategory, RootStackParamList } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 import { formatConfidence } from '../../utils/format';
 
 type ScanItem = {
@@ -77,16 +79,26 @@ export const ScanResultsScreen = ({ navigation, route }: Props) => {
     setError(null);
 
     try {
-      await saveScanResults(user.uid, cleanIngredients);
-      const profile = await getUserProfile(user.uid);
+      const saved = await saveScanResults(user.uid, cleanIngredients);
+      if (!saved) {
+        setError(useFridgeStore.getState().error ?? 'We could not save those ingredients right now.');
+        return;
+      }
 
-      if (profile) {
-        setProfile(profile);
+      try {
+        const profile = await getUserProfile(user.uid);
+        if (profile) {
+          setProfile(profile);
+        }
+      } catch (profileErr) {
+        setError(getErrorMessage(profileErr, 'Saved ingredients, but profile could not refresh.'));
+        navigation.navigate('MainTabs', { screen: 'MyFridge' });
+        return;
       }
 
       navigation.navigate('MainTabs', { screen: 'MyFridge' });
-    } catch {
-      setError('We could not save those ingredients right now.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'We could not save those ingredients right now.'));
     } finally {
       setSaving(false);
     }
@@ -97,8 +109,8 @@ export const ScanResultsScreen = ({ navigation, route }: Props) => {
       {route.params.imageUri ? <Image source={{ uri: route.params.imageUri }} style={styles.previewImage} /> : null}
 
       <Card>
-        <Text style={styles.title}>Confirm detections</Text>
-        <Text style={styles.subtitle}>
+        <Text style={screenSharedStyles.pageTitle}>Confirm detections</Text>
+        <Text style={screenSharedStyles.pageSubtitle}>
           Review each ingredient, tweak names or quantities, and remove anything KatLens got wrong.
         </Text>
       </Card>
@@ -125,21 +137,11 @@ export const ScanResultsScreen = ({ navigation, route }: Props) => {
             placeholder="2 items"
           />
 
-          <View style={styles.categoriesWrap}>
-            {editableIngredientCategories.map(category => {
-              const active = ingredient.category === category;
-
-              return (
-                <Pressable
-                  key={`${ingredient.id}-${category}`}
-                  onPress={() => updateIngredient(ingredient.id, { category })}
-                  style={[styles.categoryChip, active && styles.categoryChipActive]}
-                >
-                  <Text style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>{category}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <CategoryChipPicker
+            value={ingredient.category}
+            onChange={category => updateIngredient(ingredient.id, { category })}
+            accent="secondary"
+          />
 
           <Button
             label="Remove ingredient"
@@ -152,11 +154,7 @@ export const ScanResultsScreen = ({ navigation, route }: Props) => {
         </Card>
       ))}
 
-      {error ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
+      {error ? <InlineAlert variant="error" message={error} /> : null}
 
       <Button label="Add another ingredient" variant="outline" onPress={addIngredient} />
       <Button label="Save to MyFridge" onPress={onSave} loading={saving} />
@@ -170,17 +168,6 @@ const styles = StyleSheet.create({
     height: 260,
     borderRadius: radii.lg,
     backgroundColor: colors.backgroundAlt,
-  },
-  title: {
-    fontFamily: fontFamilies.heading,
-    fontSize: fontSizes.xxl,
-    color: colors.text,
-  },
-  subtitle: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.md,
-    lineHeight: 24,
-    color: colors.textMuted,
   },
   ingredientHeader: {
     flexDirection: 'row',
@@ -203,37 +190,5 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.bodySemiBold,
     fontSize: fontSizes.xs,
     color: colors.primaryDark,
-  },
-  categoriesWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  categoryChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceMuted,
-  },
-  categoryChipActive: {
-    backgroundColor: colors.secondary,
-  },
-  categoryChipText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.xs,
-    color: colors.text,
-  },
-  categoryChipTextActive: {
-    color: colors.white,
-  },
-  errorBox: {
-    backgroundColor: 'rgba(217, 90, 90, 0.12)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-  },
-  errorText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.danger,
   },
 });

@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text } from 'react-native';
 
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/common/InlineAlert';
 import { Input } from '../../components/common/Input';
 import { Screen } from '../../components/common/Screen';
 import { requestPasswordReset } from '../../services/auth';
 import { useAuthStore } from '../../store/authStore';
-import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
+import { screenSharedStyles } from '../../theme/screenShared';
 import type { AuthStackParamList, ForgotPasswordFormValues } from '../../types';
 import { getErrorMessage } from '../../utils/error';
 import { forgotPasswordSchema } from '../../utils/validation';
@@ -55,8 +56,8 @@ export const ForgotPasswordScreen = ({ navigation }: Props) => {
   return (
     <Screen scroll>
       <Card>
-        <Text style={styles.title}>Reset your password</Text>
-        <Text style={styles.subtitle}>
+        <Text style={screenSharedStyles.pageTitle}>Reset your password</Text>
+        <Text style={screenSharedStyles.pageSubtitle}>
           Enter the email tied to your KatChef account and we&apos;ll help you get back in.
         </Text>
 
@@ -77,17 +78,8 @@ export const ForgotPasswordScreen = ({ navigation }: Props) => {
           )}
         />
 
-        {status ? (
-          <View style={styles.statusBox}>
-            <Text style={styles.statusText}>{status}</Text>
-          </View>
-        ) : null}
-
-        {localError ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{localError}</Text>
-          </View>
-        ) : null}
+        {status ? <InlineAlert variant="success" message={status} /> : null}
+        {localError ? <InlineAlert variant="error" message={localError} /> : null}
 
         <Button label="Send reset link" onPress={onSubmit} loading={submitting} />
         <Button label="Back to login" variant="ghost" onPress={() => navigation.goBack()} />
@@ -95,37 +87,3 @@ export const ForgotPasswordScreen = ({ navigation }: Props) => {
     </Screen>
   );
 };
-
-const styles = StyleSheet.create({
-  title: {
-    fontFamily: fontFamilies.heading,
-    fontSize: fontSizes.xxl,
-    color: colors.text,
-  },
-  subtitle: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
-    lineHeight: 24,
-  },
-  statusBox: {
-    backgroundColor: 'rgba(103, 184, 107, 0.12)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-  },
-  statusText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.secondaryDark,
-  },
-  errorBox: {
-    backgroundColor: 'rgba(217, 90, 90, 0.12)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-  },
-  errorText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.danger,
-  },
-});

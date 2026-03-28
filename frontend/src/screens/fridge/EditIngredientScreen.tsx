@@ -1,18 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/common/InlineAlert';
 import { Input } from '../../components/common/Input';
 import { Screen } from '../../components/common/Screen';
-import { editableIngredientCategories } from '../../constants/categories';
+import { CategoryChipPicker } from '../../components/fridge/CategoryChipPicker';
 import { getUserProfile } from '../../services/firestore';
 import { useAuthStore } from '../../store/authStore';
 import { useFridgeStore } from '../../store/fridgeStore';
-import { colors, fontFamilies, fontSizes, radii, spacing } from '../../theme';
+import { colors, fontFamilies, fontSizes, screenSharedStyles, spacing } from '../../theme';
 import type { IngredientFormValues, RootStackParamList } from '../../types';
 import { ingredientSchema } from '../../utils/validation';
 
@@ -24,8 +26,16 @@ export const EditIngredientScreen = ({ navigation, route }: Props) => {
   const items = useFridgeStore(state => state.items);
   const upsertItem = useFridgeStore(state => state.upsertItem);
   const removeItem = useFridgeStore(state => state.removeItem);
+  const fridgeError = useFridgeStore(state => state.error);
+  const clearFridgeError = useFridgeStore(state => state.clearError);
   const existingItem = items.find(item => item.id === route.params?.itemId);
   const [saving, setSaving] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      clearFridgeError();
+    }, [clearFridgeError])
+  );
 
   const {
     control,
@@ -64,12 +74,14 @@ export const EditIngredientScreen = ({ navigation, route }: Props) => {
       const saved = await upsertItem(user.uid, values, existingItem?.id);
 
       if (saved) {
-        const profile = await getUserProfile(user.uid);
-
-        if (profile) {
-          setProfile(profile);
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (profile) {
+            setProfile(profile);
+          }
+        } catch {
+          /* profile refresh failed — ingredient still saved */
         }
-
         navigation.goBack();
       }
     } finally {
@@ -80,10 +92,12 @@ export const EditIngredientScreen = ({ navigation, route }: Props) => {
   return (
     <Screen scroll>
       <Card>
-        <Text style={styles.title}>{existingItem ? 'Edit ingredient' : 'Add ingredient'}</Text>
-        <Text style={styles.subtitle}>
+        <Text style={screenSharedStyles.pageTitle}>{existingItem ? 'Edit ingredient' : 'Add ingredient'}</Text>
+        <Text style={screenSharedStyles.pageSubtitle}>
           Keep names, categories, and quantities tidy so future recipe suggestions stay useful.
         </Text>
+
+        {fridgeError ? <InlineAlert variant="error" message={fridgeError} /> : null}
 
         <Controller
           control={control}
@@ -115,22 +129,12 @@ export const EditIngredientScreen = ({ navigation, route }: Props) => {
 
         <View style={styles.categorySection}>
           <Text style={styles.categoryLabel}>Category</Text>
-          <View style={styles.categoriesWrap}>
-            {editableIngredientCategories.map(category => {
-              const active = selectedCategory === category;
-
-              return (
-                <Pressable
-                  key={category}
-                  onPress={() => setValue('category', category, { shouldValidate: true })}
-                  style={[styles.categoryChip, active && styles.categoryChipActive]}
-                >
-                  <Text style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>{category}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {errors.category?.message ? <Text style={styles.errorText}>{errors.category.message}</Text> : null}
+          <CategoryChipPicker
+            value={selectedCategory}
+            onChange={category => setValue('category', category, { shouldValidate: true })}
+            accent="primary"
+          />
+          {errors.category?.message ? <Text style={styles.fieldError}>{errors.category.message}</Text> : null}
         </View>
 
         <Button label={existingItem ? 'Save changes' : 'Add ingredient'} onPress={onSubmit} loading={saving} />
@@ -169,17 +173,6 @@ export const EditIngredientScreen = ({ navigation, route }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  title: {
-    fontFamily: fontFamilies.heading,
-    fontSize: fontSizes.xxl,
-    color: colors.text,
-  },
-  subtitle: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
-    lineHeight: 24,
-  },
   categorySection: {
     gap: spacing.sm,
   },
@@ -188,29 +181,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colors.text,
   },
-  categoriesWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  categoryChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceMuted,
-  },
-  categoryChipActive: {
-    backgroundColor: colors.primary,
-  },
-  categoryChipText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.xs,
-    color: colors.text,
-  },
-  categoryChipTextActive: {
-    color: colors.white,
-  },
-  errorText: {
+  fieldError: {
     fontFamily: fontFamilies.bodyMedium,
     fontSize: fontSizes.xs,
     color: colors.danger,

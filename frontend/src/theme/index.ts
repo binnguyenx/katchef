@@ -44,3 +44,5 @@ export type AppTheme = typeof theme;
 export * from './colors';
 export * from './spacing';
 export * from './typography';
+export { screenSharedStyles } from './screenShared';
+export { authScreenStyles } from './authScreen';
