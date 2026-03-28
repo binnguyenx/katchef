@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     mock_mode: bool = False
     firebase_credentials_path: str = ""
 
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-2.5-flash"
 
 
 @lru_cache

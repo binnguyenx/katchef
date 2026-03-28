@@ -22,6 +22,8 @@ build/
 .idea/
 .vscode/
 
+# Node
+node_modules/
+
 # Frontend (when you init Expo inside frontend/)
-frontend/node_modules/
 frontend/.expo/
