@@ -155,6 +155,26 @@ def save_recipe_suggestions(session_id: str | None, recipes: list[Any]) -> None:
         logger.warning("save_recipe_suggestions failed: %s", e)
 
 
+def get_last_scan_ingredients(session_id: str | None) -> list[Any]:
+    """Return IngredientItem-compatible dicts from sessions/{sid}.last_scan_ingredients."""
+    db = get_firestore_client()
+    if db is None:
+        return []
+    sid = _sid(session_id)
+    try:
+        snap = db.collection("sessions").document(sid).get()
+        if not snap.exists:
+            return []
+        data = snap.to_dict() or {}
+        raw = data.get("last_scan_ingredients") or []
+        if not isinstance(raw, list):
+            return []
+        return raw
+    except Exception as e:
+        logger.warning("get_last_scan_ingredients failed: %s", e)
+        return []
+
+
 def get_session_history(session_id: str | None, *, limit: int = 50) -> list[dict[str, Any]]:
     db = get_firestore_client()
     if db is None:

@@ -1,44 +1,38 @@
-"""Image → ingredients via Google Cloud Vision (or mock)."""
-
-from __future__ import annotations
-
-import logging
 import os
+import json
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
-from backend.config.settings import get_settings
+load_dotenv()
 
-logger = logging.getLogger(__name__)
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-MOCK_INGREDIENTS = ["2 Eggs", "1 Tomato", "Leftover Chicken", "Half Onion"]
+VISION_PROMPT = """Look at this fridge photo and list every food ingredient you can see.
+
+Return ONLY a JSON array of strings, nothing else. Example: ["eggs", "milk", "tomato", "cheese"]
+
+If you cannot identify any food items, return an empty array: []"""
 
 
-def _ensure_vision_credentials() -> None:
-    creds = get_settings().google_application_credentials
-    if creds and not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds
+def detect_ingredients(image_bytes: bytes) -> list[str]:
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[
+            types.Content(
+                parts=[
+                    types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+                    types.Part.from_text(text=VISION_PROMPT),
+                ],
+            ),
+        ],
+    )
+    text = response.text.strip()
+    # Clean markdown code fences if present
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    return json.loads(text)
 
 
 def detect_ingredients_from_image(image_bytes: bytes) -> list[str]:
-    settings = get_settings()
-    if settings.mock_mode:
-        return list(MOCK_INGREDIENTS)
-
-    _ensure_vision_credentials()
-
-    try:
-        from google.cloud import vision
-
-        client = vision.ImageAnnotatorClient()
-        image = vision.Image(content=image_bytes)
-        response = client.label_detection(image=image, max_results=25)
-        if response.error.message:
-            logger.error("Vision API error: %s", response.error.message)
-            return list(MOCK_INGREDIENTS)
-
-        labels = [a.description for a in response.label_annotations if a.description]
-        # Heuristic: treat labels as rough “ingredients”; refine later with Gemini.
-        cleaned = [l for l in labels if len(l) > 1][:12]
-        return cleaned if cleaned else list(MOCK_INGREDIENTS)
-    except Exception as e:
-        logger.exception("Vision call failed, using mock: %s", e)
-        return list(MOCK_INGREDIENTS)
+    return detect_ingredients(image_bytes)

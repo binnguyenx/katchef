@@ -44,9 +44,15 @@ class RecipeSuggestion(BaseModel):
 class RecipeSuggestRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    ingredients: list[IngredientItem] = Field(default_factory=list)
+    ingredients: list[IngredientItem] = Field(
+        default_factory=list,
+        description="If empty, backend loads last scan from Firestore for session_id (same id as vision scan).",
+    )
     preferences: RecipePreferences | None = None
-    session_id: str | None = None
+    session_id: str | None = Field(
+        default=None,
+        description="Must match POST /api/vision/ingredients session_id so recipes use stored ingredients.",
+    )
 
 
 class RecipeSuggestResponse(BaseModel):
