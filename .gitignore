@@ -22,6 +22,9 @@ build/
 .idea/
 .vscode/
 
+# Local exports (Premiere / assets — not part of app source)
+KatChef Editing/
+
 # Node
 node_modules/
 
